@@ -30,6 +30,7 @@ public class Node implements Runnable {
 	private int file_number = 0;
 	private int TTL_hops = 2;
 	private String[] searchQueryBuffer = null;
+	private int queryBufferCount = 0;
 	
 	private DatagramSocket socket = null;
 
@@ -117,22 +118,26 @@ public class Node implements Runnable {
 		InetAddress address = InetAddress.getByName(ip_address);
 		String response = "SEROK";
 
-		String file_name = st.nextToken();
+		String file_name = st.nextToken().toLowerCase();
 		String hops = st.nextToken();
 		String ttl = st.nextToken();
 
 		int hop_count = Integer.parseInt(hops);
         int ttl_hops = Integer.parseInt(ttl);
-        String searchQueryString = ip_address+" "+pPort+" "+file_name;//+" "+hops;
+        String searchQueryString = ip_address+" "+pPort+" "+file_name+" "+hops;
 
-        if(isQueryInBuffer(searchQueryString))
+        printQueryBuffer();
+
+        if((isQueryInBuffer(searchQueryString) == 1)||(isQueryInBuffer(searchQueryString) == 2))
         {
             boolean file_exist = checkFileExistency(socket,address,port,file_name,hop_count,ttl_hops);
             if(!file_exist)
                 forwardSERQuery(received,socket,address,port,file_name,hop_count,ttl_hops);
+
         }
-        else
+        else if(isQueryInBuffer(searchQueryString) == 0)
 		{
+            System.out.println("Query is not in the buffer");
 		    addQueryToBuffer(searchQueryString);
             boolean file_exist = checkFileExistency(socket,address,port,file_name,hop_count,ttl_hops);
             if(!file_exist)
@@ -141,22 +146,23 @@ public class Node implements Runnable {
         return null;
     }
 
+    private void printQueryBuffer() {
+	    System.out.println("************************************");
+	    for(int i=0;i<searchQueryBuffer.length;i++)
+	    {
+	        if(searchQueryBuffer[i]!=null)
+	        {
+	            System.out.println(searchQueryBuffer[i]);
+            }
+        }
+        System.out.println("************************************");
+    }
+
     private void addQueryToBuffer(String searchQueryString)
     {
-        int i=0;
-        for(i=0;i<searchQueryBuffer.length;i++)
-        {
-            if(searchQueryBuffer[i] == null)
-                break;
-        }
-        if(i == searchQueryBuffer.length)
-        {
-            searchQueryBuffer[0] = searchQueryString;
-        }
-        else
-        {
-            searchQueryBuffer[i] = searchQueryString;
-        }
+        int index = queryBufferCount % 10;
+        searchQueryBuffer[index] = searchQueryString;
+        queryBufferCount++;
     }
 
     private String forwardSERQuery(DatagramPacket received, DatagramSocket socket, InetAddress address, int port,
@@ -171,6 +177,16 @@ public class Node implements Runnable {
 
         for (int i=0;i<this.node_routing_table.getNeighbours().size();i++) {
             int neighbour_port = this.node_routing_table.getNeighbours().get(i).getPort();
+
+            String neighbour_ip = this.node_routing_table.getNeighbours().get(i).getIp();
+            if(((neighbour_ip.equals(received.getAddress().getHostAddress()))&&(neighbour_port==received.getPort()))
+                    ||((neighbour_ip.equals(address.getHostAddress()))&&(neighbour_port==port))) {
+                //System.out.println("Addresses are equal -> "+neighbour_ip +":"+neighbour_port+
+                //        " - "+received.getAddress().getHostAddress()+":"+received.getPort()+" - "+address.getHostAddress()+":"+port);
+                continue;
+            }
+            //System.out.println("Addresses are equal -> "+neighbour_ip +":"+neighbour_port+
+            //        " - "+received.getAddress().getHostAddress()+":"+received.getPort()+" - "+address.getHostAddress()+":"+port);
             InetAddress neighbour_address = InetAddress.getByName(this.node_routing_table.getNeighbours().get(i).getIp());
             DatagramPacket searchForward = new DatagramPacket(response.getBytes(), response.getBytes().length, neighbour_address, neighbour_port);
             try {
@@ -251,14 +267,44 @@ public class Node implements Runnable {
     }
     */
 
-    private boolean isQueryInBuffer(String searchQueryString)
+    private int isQueryInBuffer(String searchQueryString)
     {
+        StringTokenizer st = new StringTokenizer(searchQueryString," ");
+        String ip = st.nextToken();
+        String port = st.nextToken();
+        String file_name = st.nextToken();
+        String hops = st.nextToken();
+
 	    for(int i=0;i<searchQueryBuffer.length;i++)
 	    {
-	        if((searchQueryBuffer[i]!=null)&&(searchQueryBuffer[i].equals(searchQueryString)))
-	            return true;
+	        if(searchQueryBuffer[i]!=null)
+	        {
+                if(searchQueryBuffer[i].equals(searchQueryString))
+                {
+                    System.out.println("Query is in the buffer - "+searchQueryString);
+                    return 1;
+                }
+                else
+                {
+                    StringTokenizer stTemp = new StringTokenizer(searchQueryBuffer[i]," ");
+                    String buffer_ip = stTemp.nextToken();
+                    String buffer_port = stTemp.nextToken();
+                    String buffer_file_name = stTemp.nextToken();
+                    String buffer_hops = stTemp.nextToken();
+
+                    if(ip.equals(buffer_ip)&&(port.equals(buffer_port))&&(file_name.equals(buffer_file_name)))
+                    {
+                        if(Integer.parseInt(hops)<Integer.parseInt(buffer_hops)) {
+                            System.out.println("Hops are smaller - "+buffer_hops+">"+hops);
+                            return 2;
+                        }
+                        else
+                            return 3;
+                    }
+                }
+            }
         }
-        return false;
+        return 0;
     }
 
 	public String handleJOINRequest(DatagramSocket socket, StringTokenizer st) throws UnknownHostException
