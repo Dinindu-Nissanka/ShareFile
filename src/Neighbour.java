@@ -8,17 +8,33 @@ public class Neighbour{
 	public Neighbour(String ip, int port){
 		this.ip = ip;
 		this.port = port;
-	}	
+	}
 
+	/**
+	 * Get the Neighbour IP address
+     *
+	 * @return
+	 */
 	public String getIp(){
 		return this.ip;
 	}
 
-	public int getPort(){
+    /**
+     * Get the neighbour port number
+     *
+     * @return
+     */
+    public int getPort(){
 		return this.port;
 	}
-	
-	@Override
+
+    /**
+     * Edited equals method to check the equality of the nodes
+     *
+     * @param obj
+     * @return
+     */
+    @Override
 	public boolean equals(Object obj)
 	{
 		if (this == obj)
