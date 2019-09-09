@@ -5,11 +5,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 
+/**
+ * RoutingTable class
+ * Each node has its routing table
+ */
 public class RoutingTable {
 
 	private List<Neighbour> neighbourNodes = new ArrayList<Neighbour>();
-	
-	public int addNeighbour(String ip, int port)
+
+    /**
+     * Method to add a neighbour node to the routing table
+     *
+     * @param ip
+     * @param port
+     * @return
+     */
+    public int addNeighbour(String ip, int port)
 	{
 		Neighbour tempNeighbour = new Neighbour(ip, port);
 		for (int i=0;i<neighbourNodes.size();i++)
@@ -23,8 +34,15 @@ public class RoutingTable {
 		//this.printRoutingTable();
 		return 0;
 	}
-	
-	public void removeNeighbour(String ip, int port)
+
+    /**
+     * Method to remove neighbour from the routing table
+     *
+     * @param ip
+     * @param port
+     * @return
+     */
+    public boolean removeNeighbour(String ip, int port)
 	{
 		Neighbour tempNeighbour = new Neighbour(ip, port);
 		for (int i=0;i<neighbourNodes.size();i++)
@@ -32,17 +50,27 @@ public class RoutingTable {
 			if(neighbourNodes.get(i).equals(tempNeighbour))
 			{
 				neighbourNodes.remove(i);
-				i--;
+				System.out.println("Neighbour : "+ip+":"+port+" was removed");
+				return true;
 			}
 		}
+		return false;
 	}
-	
-	public ArrayList<Neighbour> getNeighbours()
+
+    /**
+     * Method to return the routing table neighbour list
+     *
+     * @return
+     */
+    public ArrayList<Neighbour> getNeighbours()
 	{
 		return (ArrayList<Neighbour>) neighbourNodes;
 	}
-	
-	public void printRoutingTable()
+
+    /**
+     * Method to print the routing table
+     */
+    public void printRoutingTable()
 	{
 		for(int i=0;i<neighbourNodes.size();i++)
 		{
